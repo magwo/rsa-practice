@@ -2,10 +2,10 @@ import Big from './big.mjs';
 
 function makeKeys() {
     // TODO: Make these random
-    const prime1 = 83;
-    const prime2 = 11;
+    const prime1 = 227;
+    const prime2 = 199;
     const product = prime1 * prime2;
-    const exponent = 7;
+    const exponent = 23;
 
     console.log("Prime 1 is", prime1);
     console.log("Prime 2 is", prime2);
@@ -75,10 +75,19 @@ function getModularMultiplicativeInverse(a, m) {
     throw new Error(`No modular multiplicative inverse exists for ${a}, ${m}`);
 }
 
-function encryptMessage(messageNumber, publicKey) {
-    console.log("Encrypting", messageNumber);
+function encryptMessage(messageStr, publicKey) {
+    console.log("Encrypting", message);
     console.log("...using key", publicKey);
 
+    let messageNumber = new Big(0);
+    for (let i=0; i<messageStr.length; i++) {
+        messageNumber = messageNumber.plus(message.charCodeAt(i));
+
+        if(i < messageStr.length - 1) {
+            messageNumber = messageNumber.times(256); // Shift
+        }
+    }
+    console.log("messageNumber is", messageNumber);
     const raised = new Big(messageNumber).pow(publicKey.exponent);
     console.log("Raised is", raised);
     const encrypted = raised.mod(publicKey.product);
@@ -90,9 +99,16 @@ function decryptMessage(encryptedMessageNumber, keys) {
     console.log("Decrypting", encryptedMessageNumber);
     const raised = new Big(encryptedMessageNumber).pow(keys.private.decryptionKey);
     console.log("Encrypted raised is", raised);
-    const decrypted = raised.mod(keys.public.product);
-    console.log("Decrypted number is", decrypted);
-    return decrypted.toNumber();
+    let decryptedNumber = raised.mod(keys.public.product);
+    console.log("Decrypted number is", decryptedNumber);
+
+    let message = "";
+    while(decryptedNumber.gt(0)) {
+        message = String.fromCharCode(decryptedNumber.mod(256).toNumber()) + message;
+        console.log("Added", message);
+        decryptedNumber = decryptedNumber.div(256).round(0, Big.roundDown);
+    }
+    return message;
 }
 
 // getGreatestCommonDivisor(10, 8);
@@ -102,11 +118,10 @@ function decryptMessage(encryptedMessageNumber, keys) {
 
 const keys = makeKeys();
 console.log("Keys are", keys);
-const message = "H";
+const message = "hi";
 console.log("Message being sent is:", message);
-const C = encryptMessage(message.charCodeAt(0), keys.public);
-const M = decryptMessage(C, keys);
-const decryptedMessage = String.fromCharCode(M);
+const C = encryptMessage(message, keys.public);
+const decryptedMessage = decryptMessage(C, keys);
 console.log("Decrypted message:", decryptedMessage);
 if (message === decryptedMessage) {
     console.log("😎 Correct 😎");
